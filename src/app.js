@@ -278,7 +278,7 @@ function viewDia(){
   if(carried.length&&k===t) h+=`<div class="banner"><span class="big">↻</span><div><b>${carried.length} ${carried.length>1?'tarefas vieram':'tarefa veio'} de dias anteriores.</b> Elas estão no topo, com um lembrete de quantos dias estão esperando. Se algo não vale mais a pena, risque. Isso também é progresso.</div></div>`;
   h+=`<section><label class="lbl u" for="intent">Intenção do dia</label>
     <input class="line" id="intent" data-bind="days|${k}|intent" value="${esc(D.intent)}" placeholder="O que faria hoje valer a pena?"></section>
-  <section class="blk"><span class="lbl">Diário</span>
+  <section class="blk"><span class="lbl">Diário</span>${(()=>{const ts=(D.items||[]).filter(i=>i.t==='task'&&i.s!=='cancelled'&&i.s!=='migrated'&&i.s!=='scheduled');const dn=ts.filter(i=>i.s==='done').length;return ts.length?`<span class="count">${dn} de ${ts.length} ${ts.length>1?'tarefas feitas':'tarefa feita'}</span><div class="progress" style="margin:0 0 10px;max-width:260px"><i style="width:${dn/ts.length*100}%"></i></div>`:''})()}
     ${listHTML(ref,{empty:'Nada registrado ainda. Escreva abaixo: tarefas (•), eventos (○), notas (–) e ideias (~).'})}
     ${addHTML(ref)}
     <p class="hint">Atalhos: comece com <b>o</b> para evento, <b>-</b> para nota, <b>~</b> para ideia, <b>*</b> para importante, <b>10h30</b> para horário. Use <b>#tema</b> para entrar no índice.</p></section>
@@ -335,11 +335,11 @@ function lineChart(keys,{w=640,h=150}={}){
   const x=i=>28+i*((w-38)/Math.max(1,keys.length-1)), y=v=>h-24-(v/10)*(h-36);
   const ser=(f,dash,color)=>{let p='';keys.forEach((k,i)=>{const v=S.days[k]&&S.days[k][f];if(v==null)return;p+=(p&&S.days[keys[i-1]]&&S.days[keys[i-1]][f]!=null?'L':'M')+x(i).toFixed(1)+' '+y(+v).toFixed(1)});
     return `<path d="${p}" fill="none" stroke="${color}" stroke-width="1.6" ${dash?'stroke-dasharray="4 4"':''} stroke-linejoin="round"/>`};
-  return `<svg class="chart" viewBox="0 0 ${w} ${h}" role="img" aria-label="Produtividade e estresse no mês">
+  return `<svg class="chart" viewBox="0 0 ${w} ${h}" role="img" aria-label="Produtividade, estresse e humor no mês">
    ${[0,5,10].map(v=>`<line x1="24" x2="${w-6}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="4" y="${y(v)+4}">${v}</text>`).join('')}
    ${keys.map((k,i)=>(i%5===0||i===keys.length-1)?`<text x="${x(i)-4}" y="${h-4}">${+k.slice(8)}</text>`:'').join('')}
-   ${ser('prod',false,'var(--blue)')}${ser('stress',true,'var(--red)')}
-   <g transform="translate(${w-190},4)"><line x1="0" x2="22" y1="6" y2="6" stroke="var(--blue)" stroke-width="1.6"/><text x="28" y="10">Produtividade</text><line x1="110" x2="132" y1="6" y2="6" stroke="var(--red)" stroke-width="1.6" stroke-dasharray="4 4"/><text x="138" y="10">Estresse</text></g></svg>`;
+   ${ser('prod',false,'var(--red)')}${ser('stress',true,'var(--ink)')}${ser('mood',false,'var(--blue)')}
+   <g transform="translate(${w-270},4)"><line x1="0" x2="22" y1="6" y2="6" stroke="var(--red)" stroke-width="1.8"/><text x="28" y="10">Produtividade</text><line x1="112" x2="134" y1="6" y2="6" stroke="var(--ink)" stroke-width="1.8" stroke-dasharray="4 4"/><text x="140" y="10">Estresse</text><line x1="200" x2="222" y1="6" y2="6" stroke="var(--blue)" stroke-width="1.8"/><text x="228" y="10">Humor</text></g></svg>`;
 }
 function viewMes(){
   const ym=ymOf(ui.cur), [y,mm]=ym.split('-').map(Number), M=peek('months',ym)||DEF.months(), n=dim(ym), t=today(), st=settings();
@@ -370,19 +370,19 @@ function viewMes(){
 
 /* ================= ACOMPANHADOR DE HÁBITOS (modelo do guia) ================= */
 const RH=26, GW=170, gx=v=>10+v*((GW-20)/10);
-const SER=[['prod','Produtividade',''],['stress','Estresse','3 4'],['mood','Humor','1 4']];
+const SER=[['prod','Produtividade','','var(--red)'],['stress','Estresse','4 3','var(--ink)'],['mood','Humor','','var(--blue)']];
 const sleepMin=s=>{const m=String(s||'').match(/(\d{1,2})\s*[h:]\s*(\d{0,2})/i);return m?(+m[1])*60+(+(m[2]||0)):null};
 function viewHabitos(){
   const ym=ymOf(ui.cur),[y,mm]=ym.split('-').map(Number),n=dim(ym),t=today(),st=settings(),H=st.habits;
   const keys=[...Array(n)].map((_,i)=>`${ym}-${pad(i+1)}`), mk=ui.hm||'prod';
   const cols=`56px ${GW}px 64px repeat(${H.length},30px)`;
   const yy=i=>RH/2+i*RH;
-  const lines=SER.map(([f,,dash])=>{let p='',dots='';keys.forEach((k,i)=>{const v=S.days[k]&&S.days[k][f];if(v==null)return;
+  const lines=SER.map(([f,,dash,col])=>{let p='',dots='';keys.forEach((k,i)=>{const v=S.days[k]&&S.days[k][f];if(v==null)return;
       const prev=i>0&&S.days[keys[i-1]]&&S.days[keys[i-1]][f]!=null;p+=(prev&&p?'L':'M')+gx(+v).toFixed(1)+' '+yy(i);
-      dots+=`<circle cx="${gx(+v).toFixed(1)}" cy="${yy(i)}" r="2.7" fill="var(--blue)"/>`});
-    return p?`<g ${f==='mood'?'opacity=".55"':''}><path d="${p}" fill="none" stroke="var(--blue)" stroke-width="1.4" stroke-dasharray="${dash}" stroke-linejoin="round"/>${dots}</g>`:''}).join('');
+      dots+=`<circle cx="${gx(+v).toFixed(1)}" cy="${yy(i)}" r="2.8" fill="${col}"/>`});
+    return p?`<g><path d="${p}" fill="none" stroke="${col}" stroke-width="1.6" stroke-dasharray="${dash}" stroke-linejoin="round"/>${dots}</g>`:''}).join('');
   const ticks=[...Array(11)].map((_,v)=>`<line x1="${gx(v)}" x2="${gx(v)}" y1="${v%5?14:10}" y2="20" stroke="var(--ink)" stroke-width="1"/>`).join('');
-  const sw=(dash)=>`<svg viewBox="0 0 30 10" aria-hidden="true"><line x1="2" x2="28" y1="5" y2="5" stroke="var(--blue)" stroke-width="1.6" stroke-dasharray="${dash}"/><circle cx="2" cy="5" r="2.4" fill="var(--blue)"/><circle cx="28" cy="5" r="2.4" fill="var(--blue)"/></svg>`;
+  const sw=(dash,c)=>`<svg viewBox="0 0 30 10" aria-hidden="true"><line x1="2" x2="28" y1="5" y2="5" stroke="${c}" stroke-width="1.8" stroke-dasharray="${dash}"/><circle cx="2" cy="5" r="2.6" fill="${c}"/><circle cx="28" cy="5" r="2.6" fill="${c}"/></svg>`;
   const elapsed=keys.filter(k=>k<=t).length||n;
   const sl=keys.map(k=>sleepMin(S.days[k]&&S.days[k].sleep)).filter(v=>v!=null);
   const avg=sl.length?Math.round(sl.reduce((a,b)=>a+b,0)/sl.length):null;
@@ -398,7 +398,7 @@ function viewHabitos(){
     ${keys.map((k,i)=>`<button class="gr" style="top:${i*RH}px" data-act="setm" data-d="${k}" aria-label="${label} do dia ${i+1}: toque na posição de 0 a 10"></button>`).join('')}</div>`;
   let h=topbar(`Acompanhador de hábitos · ${y}`,`<u>${MES[mm-1]}</u>`,navArrows('nmonth','mês'));
   h+=`<p class="hint">Preencha todo dia: leva menos de 5 minutos. Escolha o que marcar no gráfico e toque na linha do dia, na altura de 0 a 10. Tocar no mesmo ponto apaga. As bolinhas da direita marcam os hábitos.</p>
-  <div class="ht-legend" role="group" aria-label="O que marcar no gráfico">${SER.map(([f,l,d])=>`<button data-act="hmetric" data-m="${f}" aria-pressed="${mk===f}">${sw(d)}${l}</button>`).join('')}</div>
+  <div class="ht-legend" role="group" aria-label="O que marcar no gráfico">${SER.map(([f,l,d,c])=>`<button data-act="hmetric" data-m="${f}" aria-pressed="${mk===f}" style="color:${c}">${sw(d,c)}${l}</button>`).join('')}</div>
   <div class="scroll-x"><div class="ht">
    <div class="ht-head" style="grid-template-columns:${cols}">
      <div class="hd" style="font-size:17px;padding:0 4px 4px"><span class="lbl" style="font-size:15px;margin:0;padding:1px 6px">Hábitos</span></div>
@@ -533,6 +533,7 @@ function viewChave(){
   <p><b>Toque no símbolo</b> de uma tarefa para marcá-la como feita (×). Toque de novo para desfazer. No <b>⋯</b> você marca como importante, adia, agenda, risca, edita ou apaga.</p>
   <h3>Migração automática</h3><p>Toda tarefa (•) que ficar aberta passa sozinha para o dia seguinte. Ela vai para o topo da lista, destacada, com um selo dizendo há quantos dias espera. No dia original ela fica marcada com &gt;. Depois de 3 dias o caderno pergunta se ainda vale a pena. No método, migrar é um filtro: o que não merece ser reescrito pode ser riscado.</p>
   <h3>Ritmo do método</h3><p><b>Diário:</b> registre ao longo do dia e feche com o termômetro. <b>Semanal:</b> no domingo ou segunda, escreva o foco e as metas da semana; no fim, faça o check-out. <b>Mensal:</b> abra o mês com o check-in e as metas por área da vida; feche com a reflexão. <b>Anual:</b> metas do ano e registro futuro para o que vem pela frente.</p>
+  <h3>Atalhos</h3><p><b>No celular:</b> deslize para o lado na página para ir ao dia, semana, mês ou ano anterior ou seguinte. <b>No computador:</b> setas ← → navegam, <b>H</b> volta para hoje, <b>N</b> começa a escrever um item novo e <b>1</b> a <b>7</b> abrem Dia, Semana, Mês, Hábitos, Ano, Coleções e Índice.</p>
   <h3>Índice</h3><p>O índice se monta sozinho com anos, meses, dias preenchidos e coleções. Use <b>#tema</b> nos itens para agrupar assuntos e a busca para achar qualquer coisa.</p></div>`;
 }
 
@@ -712,6 +713,24 @@ document.addEventListener('focusout',e=>{
   if(e.target.id==='edit-in'){const t=e.target;setTimeout(()=>{if(ui.editing&&document.activeElement!==t){const it=getList(t.dataset.ref).find(x=>x.id===t.dataset.id);if(it&&t.value.trim()&&it.text!==t.value.trim()){it.text=t.value.trim();touchRef(t.dataset.ref)}ui.editing=null;render()}},120)}
 });
 window.addEventListener('scroll',()=>{if(document.querySelector('.pop'))closePop()},{passive:true});
+
+/* ================= atalhos e gesto de deslizar ================= */
+const STEP={dia:'nday',semana:'nweek',mes:'nmonth',habitos:'nmonth',ano:'nyear'};
+function step(n){const a=STEP[ui.view];if(!a)return;const b=document.createElement('button');b.dataset.act=a;b.dataset.n=n;b.hidden=true;document.getElementById('page').appendChild(b);b.click();}
+document.addEventListener('keydown',e=>{
+  if(e.metaKey||e.ctrlKey||e.altKey||!ready||!uidCur) return;
+  const t=e.target; if(t.closest&&t.closest('input,textarea,select,[contenteditable]')) return;
+  if(document.querySelector('.pop')) return;
+  if(e.key==='ArrowLeft'){e.preventDefault();step(-1)}
+  else if(e.key==='ArrowRight'){e.preventDefault();step(1)}
+  else if(e.key==='h'||e.key==='H'){step(0)}
+  else if(e.key==='n'||e.key==='N'){const i=document.querySelector('#page form.add input[type=text]');if(i){e.preventDefault();i.focus();i.scrollIntoView({block:'center',behavior:'smooth'})}}
+  else {const map={'1':'dia','2':'semana','3':'mes','4':'habitos','5':'ano','6':'colecoes','7':'indice'};if(map[e.key])go(map[e.key])}
+});
+let tx0=null,ty0=null,tt0=0;
+document.addEventListener('touchstart',e=>{const t=e.target;if(e.touches.length!==1||t.closest('.scroll-x,input,textarea,select,.pop,.gcell,input[type=range]')){tx0=null;return}tx0=e.touches[0].clientX;ty0=e.touches[0].clientY;tt0=Date.now()},{passive:true});
+document.addEventListener('touchend',e=>{if(tx0==null)return;const dx=e.changedTouches[0].clientX-tx0,dy=e.changedTouches[0].clientY-ty0;tx0=null;
+  if(Date.now()-tt0<600&&Math.abs(dx)>70&&Math.abs(dy)<45){step(dx<0?1:-1)}},{passive:true});
 
 /* ================= backup ================= */
 async function exportData(){

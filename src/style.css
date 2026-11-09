@@ -1,16 +1,16 @@
 /* Layout: caderno pontilhado A5 no centro, lombada lateral com navegação + mini-calendário; no celular vira página cheia com abas embaixo. */
 :root{
-  --paper:#fdfdfb; --chrome:#efeee9; --dot:#c4c6cc; --ink:#1c1c1f; --ink-2:#5d5f68; --line:#1c1c1f26;
-  --blue:#2440b5; --red:#c0161f; --yellow:#f0b400; --hl:#ffe27a99; --shadow:0 1px 2px #0000000f,0 8px 30px #0000001a;
+  --paper:#fdfdfb; --chrome:#efeee9; --dot:#c4c6cc; --ink:#0a0a0c; --ink-2:#55575f; --line:#0a0a0c29;
+  --blue:#0b3bff; --red:#d8101c; --yellow:#f0b400; --hl:#ffe27a99; --shadow:0 1px 2px #0000000f,0 8px 30px #0000001a;
   --hand:'Schoolbell','Coming Soon','Patrick Hand',cursive; --ui:'Rubik',system-ui,-apple-system,'Segoe UI',sans-serif;
   --fs-hand:21px;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --paper:#1b1c20; --chrome:#121316; --dot:#3b3d45; --ink:#ecebe6; --ink-2:#a2a4ad; --line:#ffffff24;
-  --blue:#93a6ff; --red:#ff6f6f; --yellow:#f5c842; --hl:#f5c84233; --shadow:0 1px 2px #0006,0 8px 30px #0008; color-scheme:dark}}
+  --paper:#1b1c20; --chrome:#121316; --dot:#3b3d45; --ink:#f8f7f3; --ink-2:#a9abb4; --line:#ffffff24;
+  --blue:#7d9bff; --red:#ff5a5f; --yellow:#f5c842; --hl:#f5c84233; --shadow:0 1px 2px #0006,0 8px 30px #0008; color-scheme:dark}}
 :root[data-theme="dark"]{
-  --paper:#1b1c20; --chrome:#121316; --dot:#3b3d45; --ink:#ecebe6; --ink-2:#a2a4ad; --line:#ffffff24;
-  --blue:#93a6ff; --red:#ff6f6f; --yellow:#f5c842; --hl:#f5c84233; --shadow:0 1px 2px #0006,0 8px 30px #0008; color-scheme:dark}
+  --paper:#1b1c20; --chrome:#121316; --dot:#3b3d45; --ink:#f8f7f3; --ink-2:#a9abb4; --line:#ffffff24;
+  --blue:#7d9bff; --red:#ff5a5f; --yellow:#f5c842; --hl:#f5c84233; --shadow:0 1px 2px #0006,0 8px 30px #0008; color-scheme:dark}
 *{box-sizing:border-box}
 html,body{height:100%}
 body{background:var(--chrome);color:var(--ink);font-family:var(--ui);font-size:15px;line-height:1.45}
@@ -182,7 +182,7 @@ table.hab tr.today td{background:var(--hl)}
 .ht-foot div{text-align:center}
 .ht-legend{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;margin-bottom:14px;font:400 18px var(--hand)}
 .ht-legend button{display:inline-flex;align-items:center;gap:8px;border:1.5px solid transparent;background:none;border-radius:999px;padding:3px 10px;font:inherit;color:var(--blue)}
-.ht-legend button[aria-pressed="true"]{border-color:var(--blue);background:var(--hl)}
+.ht-legend button[aria-pressed="true"]{border-color:currentColor;background:var(--hl)}
 .ht-legend svg{width:30px;height:10px}
 /* ano */
 .months{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
@@ -302,3 +302,4 @@ body.login .side,body.login .tabs{display:none}
 body.login .page{max-width:460px;margin-top:8vh;min-height:0}
 .login-card{text-align:center;padding:30px 0}
 .login-card .brand span{display:block}
+.count{font:500 12px var(--ui);color:var(--ink-2);margin-left:10px;letter-spacing:.03em}
