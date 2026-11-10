@@ -277,8 +277,8 @@ function viewDia(){
   let h=topbar(`${sub} · semana ${isoWeek(k)}`,`<u>${ddmm(k)} – ${DOW[d.getDay()]}</u>`,navArrows('nday','dia'));
   if(carried.length&&k===t) h+=`<div class="banner"><span class="big">↻</span><div><b>${carried.length} ${carried.length>1?'tarefas vieram':'tarefa veio'} de dias anteriores.</b> Elas estão no topo, com um lembrete de quantos dias estão esperando. Se algo não vale mais a pena, risque. Isso também é progresso.</div></div>`;
   h+=`<section><label class="lbl u" for="intent">Intenção do dia</label>
-    <input class="line" id="intent" data-bind="days|${k}|intent" value="${esc(D.intent)}" placeholder="O que faria hoje valer a pena?"></section>
-  <section class="blk"><span class="lbl">Diário</span>${(()=>{const ts=(D.items||[]).filter(i=>i.t==='task'&&i.s!=='cancelled'&&i.s!=='migrated'&&i.s!=='scheduled');const dn=ts.filter(i=>i.s==='done').length;return ts.length?`<span class="count">${dn} de ${ts.length} ${ts.length>1?'tarefas feitas':'tarefa feita'}</span><div class="progress" style="margin:0 0 10px;max-width:260px"><i style="width:${dn/ts.length*100}%"></i></div>`:''})()}
+    <textarea class="line grow" rows="1" id="intent" data-bind="days|${k}|intent" placeholder="O que faria hoje valer a pena?">${esc(D.intent)}</textarea></section>
+  <section class="blk"><span class="lbl">Diário</span>${(()=>{const ts=(D.items||[]).filter(i=>i.t==='task'&&i.s!=='cancelled'&&i.s!=='migrated'&&i.s!=='scheduled');const dn=ts.filter(i=>i.s==='done').length;return ts.length?`<span class="count">${dn} de ${ts.length} ${ts.length>1?'tarefas feitas':'tarefa feita'}</span>`:''})()}
     ${listHTML(ref,{empty:'Nada registrado ainda. Escreva abaixo: tarefas (•), eventos (○), notas (–) e ideias (~).'})}
     ${addHTML(ref)}
     <p class="hint">Atalhos: comece com <b>o</b> para evento, <b>-</b> para nota, <b>~</b> para ideia, <b>*</b> para importante, <b>10h30</b> para horário. Use <b>#tema</b> para entrar no índice.</p></section>
@@ -291,8 +291,8 @@ function viewDia(){
     <div class="metrics">${[['mood','Humor'],['prod','Produtividade'],['stress','Estresse']].map(([f,l])=>`<div class="metric"><label for="m-${f}">${l}<output>${D[f]??'–'}</output></label>
       <input type="range" min="0" max="10" step="1" id="m-${f}" data-bind="days|${k}|${f}" data-num value="${D[f]??5}" ${D[f]==null?'style="opacity:.45"':''}></div>`).join('')}
       <div class="metric"><label for="m-sleep">Horas de sono</label><input class="line" id="m-sleep" data-bind="days|${k}|sleep" value="${esc(D.sleep)}" placeholder="7h30"></div></div>
-    <p class="hint" style="margin-top:14px">Hábitos de hoje</p>
-    <div class="chips">${st.habits.map(hb=>`<button class="chip" data-act="habit" data-d="${k}" data-h="${hb.id}" aria-pressed="${!!(D.habits||{})[hb.id]}">${D.habits&&D.habits[hb.id]?'●':'○'} ${esc(hb.n)}</button>`).join('')||'<span class="hint">Cadastre hábitos em Ajustes.</span>'}</div></section>`;
+    <p class="sublbl">Hábitos de hoje</p>
+    <div class="chips">${st.habits.map(hb=>`<button class="chip" data-act="habit" data-d="${k}" data-h="${hb.id}" aria-pressed="${!!(D.habits||{})[hb.id]}">${D.habits&&D.habits[hb.id]?'●':'○'} ${esc(hb.n)}</button>`).join('')||'<span class="hint keep">Cadastre hábitos em Ajustes.</span>'}</div></section>`;
   return h;
 }
 
@@ -328,7 +328,6 @@ function goalsByCat(ref){
   const st=settings(), l=getListPeek(ref);
   return st.cats.map(c=>{const ls=l.filter(g=>g.cat===c.id);const done=ls.filter(g=>g.s==='done').length;const sub=ref+'#'+c.id;
     return `<div class="cat">${ICON[c.i]||ICON.star}<div style="min-width:0"><h4>${esc(c.n)}${ls.length?` · ${done}/${ls.length}`:''}</h4>
-    ${ls.length?`<div class="progress"><i style="width:${ls.length?done/ls.length*100:0}%"></i></div>`:''}
     <ul class="items">${ls.map(it=>itemHTML(it,ref)).join('')}</ul>${addHTML(sub,{types:false,ph:'Nova meta…'})}</div></div>`}).join('');
 }
 function lineChart(keys,{w=640,h=150}={}){
@@ -350,11 +349,8 @@ function viewMes(){
     <p class="hint">Como você está no começo do mês e onde quer chegar no final dele.</p>
     <textarea class="write" id="checkin" data-bind="months|${ym}|checkin" placeholder="Tudo que eu quero pra esse mês é…">${esc(M.checkin)}</textarea></section>
   <section class="blk"><span class="lbl">Metas do mês</span>${goalsByCat(`months|${ym}|goals`)}</section>
-  <section class="blk"><span class="lbl">Calendário</span><p class="hint">Eventos e itens importantes de cada dia. Toque num dia para abri-lo.</p>
-    <ul class="cal">${keys.map(k=>{const d=pd(k),D=S.days[k];const ev=D?(D.items||[]).filter(i=>(i.t==='event'||i.imp)&&i.s!=='cancelled'&&i.s!=='migrated').map(i=>(i.time?i.time+' ':'')+i.text).join(' · '):'';
-      return `<li class="${k===t?'today':''}"><a href="#dia" data-act="goday" data-d="${k}"><span class="n ${d.getDay()%6===0?'we':''}">${pad(d.getDate())} ${DOW1[d.getDay()]}</span><span class="ev">${esc(ev)}</span></a></li>`}).join('')}</ul></section>
   <section class="blk"><span class="lbl">Tarefas do mês</span>${listHTML(`months|${ym}|tasks`,{empty:'Tarefas sem dia certo para este mês.'})}${addHTML(`months|${ym}|tasks`)}
-   ${fut.length?`<p class="hint" style="margin-top:14px">Do registro futuro (Ano)</p>${listHTML(`years|${y}|f.${pad(mm)}`)}`:''}</section>
+   ${fut.length?`<p class="sublbl">Do registro futuro (Ano)</p>${listHTML(`years|${y}|f.${pad(mm)}`)}`:''}</section>
   <section class="blk"><span class="lbl">Hábitos do mês</span>
    <p class="hint">Resumo do mês. Para marcar, use a página completa do acompanhador.</p>
    <a class="btn" href="#habitos" style="text-decoration:none;margin-bottom:12px">${ICON.hab} Abrir acompanhador de hábitos</a>
@@ -430,17 +426,8 @@ function viewAno(){
     const dated=Object.keys(S.days).filter(k=>k.startsWith(ym)&&k>=t).sort().flatMap(k=>(S.days[k].items||[]).filter(it=>it.s==='open'&&(it.t==='event'||it.t==='task')&&k>t).map(it=>({it,k})));
     return `<div class="box ${ym===nowYm?'now':''}"><h5><a href="#mes" data-act="gomonth" data-ym="${ym}">${mn}</a></h5>
       ${dated.length?`<ul class="items">${dated.map(({it,k})=>itemHTML(it,`days|${k}|items`,{compact:true,extra:` <span style="color:var(--ink-2)">(${+k.slice(8)})</span>`})).join('')}</ul>`:''}
-      ${listHTML(ref,{compact:true})}<div style="margin-top:auto">${addHTML(ref,{types:false,ph:'Item',extra:`<input class="dd" name="dd" inputmode="numeric" placeholder="dia" aria-label="Dia (opcional)">`})}</div></div>`}).join('')}</div></section>
-  <section class="blk"><span class="lbl">Ano em humor</span><p class="hint">Cada quadradinho é um dia, colorido pelo humor que você registrou.</p>${pixels(y)}</section>`;
+      ${listHTML(ref,{compact:true})}<div style="margin-top:auto">${addHTML(ref,{types:false,ph:'Item',extra:`<input class="dd" name="dd" inputmode="numeric" placeholder="dia" aria-label="Dia (opcional)">`})}</div></div>`}).join('')}</div></section>`;
   return h;
-}
-function pixels(y){
-  let h='<div class="pixels"><span></span>'+MES.map(m=>`<span>${m[0]}</span>`).join('');
-  for(let d=1;d<=31;d++){h+=`<span>${d%5===0||d===1?d:''}</span>`;
-    for(let m=1;m<=12;m++){const ym=`${y}-${pad(m)}`;if(d>dim(ym)){h+='<i class="na"></i>';continue}
-      const v=S.days[`${ym}-${pad(d)}`]&&S.days[`${ym}-${pad(d)}`].mood;
-      h+=`<i title="${pad(d)}/${pad(m)}${v!=null?' · humor '+v:''}" style="${v!=null?`background:color-mix(in srgb,var(--blue) ${15+v*8.5}%,var(--paper))`:''}"></i>`}}
-  return h+'</div>';
 }
 
 /* ================= COLEÇÕES ================= */
@@ -484,7 +471,7 @@ function viewColecao(id){
       <div class="row"><div><small>Tipo</small><span class="v">${esc(r.k)}</span></div><div><small>Avaliação</small><span class="stars">${'★'.repeat(r.r)}${'☆'.repeat(5-r.r)}</span></div><div><small>Data</small><span class="v">${r.d?ddmm(r.d)+'/'+r.d.slice(0,4):''}</span></div></div>
       ${r.b?`<div class="body">${esc(r.b)}</div>`:''}${r.o?`<div class="body" style="border-top:1px solid var(--line)"><small style="display:inline">Obs.: </small>${esc(r.o)}</div>`:''}</article>`).join('')||'<p class="empty">Nenhum registro ainda.</p>'}`;
   } else {
-    h+=`<label class="hint" for="ctitle">Nome</label><input class="line" id="ctitle" data-bind="cols|${id}|title" value="${esc(C.title)}">
+    h+=`<label class="sublbl" for="ctitle">Nome</label><input class="line" id="ctitle" data-bind="cols|${id}|title" value="${esc(C.title)}">
     <section class="blk">${listHTML(`cols|${id}|items`,{empty:'Lista vazia. Adicione o primeiro item abaixo.'})}${addHTML(`cols|${id}|items`)}</section>`;
   }
   return h;
@@ -543,6 +530,8 @@ function viewAjustes(){
   return topbar('Seu caderno do seu jeito','<u>Ajustes</u>','')+`
   <section><span class="lbl">Letra</span><p class="hint">A letra do guia é feita à mão. A primeira opção é a mais parecida com ela.</p>
    <div class="fontopt">${FONTS.map(([f,d])=>`<button data-act="font" data-f="${f}" aria-pressed="${st.font===f}"><span style="font-family:'${f}',cursive">Quarta-feira, 10/12</span><small>${f} · ${d}</small></button>`).join('')}</div></section>
+  <section class="blk"><span class="lbl">Dicas</span><p class="hint">As explicações em cinza ficam escondidas para a página ficar limpa, como um caderno.</p>
+   <button class="btn small" data-act="hints" aria-pressed="${!!st.hints}">${st.hints?'Esconder dicas':'Mostrar dicas'}</button></section>
   <section class="blk"><span class="lbl">Hábitos</span><p class="hint">Aparecem no dia e no acompanhador do mês.</p>
    ${st.habits.map((hb,i)=>`<div class="set-row"><input class="line" data-hab="${i}" value="${esc(hb.n)}" aria-label="Hábito ${i+1}"><button class="btn small ghost" data-act="delhab" data-i="${i}">Remover</button></div>`).join('')}
    <form class="add" data-newhab><input type="text" name="t" id="newhab" placeholder="Novo hábito (ex.: Corrida)" autocomplete="off"><button class="btn small">Adicionar</button></form></section>
@@ -561,13 +550,15 @@ function render(){
   ui.lastDay=ui.lastDay||today();
   const v=ui.view; const f={dia:viewDia,semana:viewSemana,mes:viewMes,habitos:viewHabitos,ano:viewAno,colecoes:viewColecoes,indice:viewIndice,chave:viewChave,ajustes:viewAjustes}[v]||viewDia;
   const y=window.scrollY;
-  document.getElementById('page').innerHTML=f()+squig();
+  const pg=document.getElementById('page'); pg.dataset.v=v; document.body.classList.toggle('hints',!!settings().hints);
+  pg.innerHTML=f(); pg.querySelectorAll('textarea.grow').forEach(grow);
   document.getElementById('side').innerHTML=sideHTML();
   document.getElementById('tabs').innerHTML=tabsHTML();
   window.scrollTo(0,y);
   const e=document.getElementById('edit-in'); if(e){e.focus();e.setSelectionRange(e.value.length,e.value.length)}
   if(ui.refocus){const el=document.getElementById(ui.refocus);if(el)el.focus({preventScroll:true});ui.refocus=null}
 }
+function grow(t){t.style.height='auto';t.style.height=t.scrollHeight+'px'}
 function softRender(){
   const a=document.activeElement;
   if(a&&(a.tagName==='TEXTAREA'||(a.tagName==='INPUT'&&a.type!=='range'&&a.type!=='file'))&&a.value){renderQueued=true;return}
@@ -652,6 +643,7 @@ document.addEventListener('click',e=>{
     case 'opencol':e.preventDefault();ui.col=b.dataset.c||null;go('colecoes');break;
     case 'delcol':{const c=b.dataset.c;const gone=S.cols[c];delete S.cols[c];flush('cols',c);ui.col=null;render();undo(()=>{S.cols[c]=gone;touch('cols',c);render()},'Coleção apagada');break}
     case 'delreg':{const C=S.cols[b.dataset.c];const i=C.items.findIndex(x=>x.id===b.dataset.id);const [gone]=C.items.splice(i,1);touch('cols',b.dataset.c);render();undo(()=>{C.items.splice(i,0,gone);touch('cols',b.dataset.c);render()},'Registro apagado');break}
+    case 'hints':{settings().hints=!settings().hints;touch('meta','settings');render();break}
     case 'font':{settings().font=b.dataset.f;touch('meta','settings');applyFont();render();break}
     case 'delhab':{const st=settings();const [gone]=st.habits.splice(+b.dataset.i,1);touch('meta','settings');render();undo(()=>{st.habits.splice(+b.dataset.i,0,gone);touch('meta','settings');render()},'Hábito removido');break}
     case 'export':exportData();break;
@@ -690,6 +682,7 @@ document.addEventListener('submit',e=>{
 });
 document.addEventListener('input',e=>{
   const t=e.target;
+  if(t.classList.contains('grow')) grow(t);
   if(t.dataset.bind){const [col,id,field]=t.dataset.bind.split('|');const o=doc(col,id);
     if(t.hasAttribute('data-num')){o[field]=+t.value;t.style.opacity=1;const out=t.parentElement.querySelector('output');if(out)out.textContent=t.value}else o[field]=t.value;
     touch(col,id); if(col==='cols'&&field==='title'){}
