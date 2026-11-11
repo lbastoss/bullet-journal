@@ -1,4 +1,4 @@
-import { onAuthStateChanged, signInWithPopup, signInWithRedirect, signOut, signInAnonymously } from 'firebase/auth';
+import { onAuthStateChanged, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, signInAnonymously } from 'firebase/auth';
 import { collection, doc as fsDoc, onSnapshot, setDoc, deleteDoc } from 'firebase/firestore';
 import { auth, db, googleProvider, isEmulator } from './firebase.js';
 import './style.css';
@@ -151,6 +151,7 @@ function showLogin(){
     ${isEmulator?'<button class="btn" data-act="loginanon" style="margin-top:10px">Entrar sem conta (emulador)</button>':''}
     <p class="hint" id="loginerr" style="color:var(--red)"></p>
     <p class="hint" style="margin-top:28px">Cada pessoa só acessa o próprio caderno.</p></div>`;
+  getRedirectResult(auth).catch(e=>{const el=document.getElementById('loginerr');if(el)el.textContent='Não foi possível entrar: '+(e&&e.code||e)});
 }
 async function doLogin(){
   try{
@@ -559,6 +560,9 @@ function render(){
   if(ui.refocus){const el=document.getElementById(ui.refocus);if(el)el.focus({preventScroll:true});ui.refocus=null}
 }
 function grow(t){t.style.height='auto';t.style.height=t.scrollHeight+'px'}
+const regrow=()=>document.querySelectorAll('textarea.grow').forEach(grow);
+if(document.fonts&&document.fonts.ready) document.fonts.ready.then(regrow);
+window.addEventListener('resize',regrow);
 function softRender(){
   const a=document.activeElement;
   if(a&&(a.tagName==='TEXTAREA'||(a.tagName==='INPUT'&&a.type!=='range'&&a.type!=='file'))&&a.value){renderQueued=true;return}

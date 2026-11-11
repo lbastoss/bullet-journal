@@ -12,7 +12,9 @@ const useEmulator = env.VITE_USE_EMULATOR === 'true';
 
 export const app = initializeApp({
   apiKey: env.VITE_FIREBASE_API_KEY || 'demo-key',
-  authDomain: env.VITE_FIREBASE_AUTH_DOMAIN,
+  // No site publicado o login passa pelo próprio domínio do app. Isso é o que faz o
+  // login com Google funcionar no app salvo na tela de início do iPhone.
+  authDomain: /\.(web\.app|firebaseapp\.com)$/.test(location.hostname) ? location.host : env.VITE_FIREBASE_AUTH_DOMAIN,
   projectId: env.VITE_FIREBASE_PROJECT_ID || 'demo-bujo',
   storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID,
