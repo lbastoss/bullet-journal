@@ -6,11 +6,13 @@ Bullet journal digital baseado no livro *O Método Bullet Journal* (Ryder Carrol
 
 ## O que tem
 
+- **Caderno de verdade:** capa de couro que abre sozinha no dia de hoje, papel com textura, páginas que viram com animação e abas coloridas na lateral para ir direto a cada parte.
+
 - **Dia:** registro rápido (• tarefa, ○ evento, – nota, ~ ideia), intenção do dia, termômetro do dia com prompts, humor, produtividade, estresse, sono e hábitos.
 - **Semana:** foco, metas da semana, gráfico de humor, os 7 dias, próxima semana e check-out.
-- **Mês:** check-in, metas nas 5 áreas da vida, calendário, tarefas do mês e reflexão.
+- **Mês:** check-in, metas nas 5 áreas da vida, tarefas do mês e reflexão.
 - **Hábitos:** acompanhador mensal no modelo do guia (gráfico 0–10, sono e bolinhas por hábito).
-- **Ano:** palavra do ano, metas, registro futuro e "ano em humor".
+- **Ano:** palavra do ano, metas e registro futuro.
 - **Coleções:** banco de prompts, registro de conteúdo e listas próprias.
 - **Índice:** montado sozinho, com busca e `#temas`.
 - **Migração automática:** tarefa não concluída passa para o dia seguinte com um lembrete de quantos dias está esperando.

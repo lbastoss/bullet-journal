@@ -107,7 +107,7 @@ function syncHTML(){
   const t={cloud:'Sincronizado entre seus aparelhos',local:'Salvo só neste navegador',none:'Conectando…'}[mode];
   const cls=syncState==='err'||syncState==='offline'?'warn':mode==='cloud'&&ready?'ok':'warn';
   const msg=syncState==='saving'?'Salvando…':syncState==='err'?syncMsg:syncState==='offline'?'Offline: salva aqui e sincroniza depois':t;
-  return `<div class="sync ${cls}" id="sync"><i></i>${esc(msg)}</div>`;
+  return `<span class="sync ${cls}" id="sync" title="${esc(msg)}" role="status"><i></i><span class="st">${cls==='warn'||syncState==='saving'?esc(msg):''}</span></span>`;
 }
 
 /* ================= login + Firestore =================
@@ -115,6 +115,8 @@ function syncHTML(){
    cada usuário ler e escrever dentro do próprio users/{uid}. */
 let uidCur=null, currentUser=null;
 function init(){
+  // Só em desenvolvimento (npm run dev, endereço com ?demo): abre sem login, salvando no navegador
+  if(import.meta.env.DEV&&location.search.includes('demo')){mode='local';uidCur='demo';loadLocal();ready=true;setTimeout(afterLoad,600);return}
   onAuthStateChanged(auth,u=>{
     if(u&&uidCur&&u.uid!==uidCur){location.reload();return}
     if(!u){ if(uidCur){location.reload();return} showLogin(); return }
@@ -141,26 +143,33 @@ function startSync(){
 }
 function showLogin(){
   document.body.classList.add('login');
-  document.getElementById('side').innerHTML=''; document.getElementById('tabs').innerHTML='';
-  document.getElementById('page').innerHTML=`<div class="login-card">
-    <div class="brand" style="font-size:34px">bullet<span style="font-size:46px">journal</span></div>
-    <p class="hand" style="font-size:21px;margin:18px 0 26px">Registre o passado, organize o presente, planeje o futuro.</p>
-    <button class="btn primary" data-act="login" style="padding:10px 20px;font-size:15px">
+  document.getElementById('coveract').innerHTML=`<p class="cover-tag">Registre o passado, organize o presente, planeje o futuro.</p>
+    <button class="cover-btn" data-act="login">
       <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.75c1.77 0 3.36.61 4.61 1.7l3.42-3.43C17.95 1.15 15.24 0 12 0 7.31 0 3.26 2.69 1.29 6.61l3.98 3.09C6.22 6.86 8.87 4.75 12 4.75Z" fill="#EA4335"/><path d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47a5.57 5.57 0 0 1-2.4 3.59l3.86 3.09c2.26-2.1 3.56-5.25 3.56-8.92Z" fill="#4285F4"/><path d="M5.27 14.3a7.1 7.1 0 0 1 0-4.6L1.29 6.61a12 12 0 0 0 0 10.78l3.98-3.09Z" fill="#FBBC05"/><path d="M12 24c3.24 0 5.97-1.06 7.94-2.81l-3.87-3.09c-1.07.71-2.45 1.15-4.07 1.15-3.13 0-5.78-2.11-6.73-4.95l-3.98 3.09C3.26 21.31 7.31 24 12 24Z" fill="#34A853"/></svg>
       Entrar com o Google</button>
-    ${isEmulator?'<button class="btn" data-act="loginanon" style="margin-top:10px">Entrar sem conta (emulador)</button>':''}
-    <p class="hint" id="loginerr" style="color:var(--red)"></p>
-    <p class="hint" style="margin-top:28px">Cada pessoa só acessa o próprio caderno.</p></div>`;
+    ${isEmulator?'<button class="cover-btn" data-act="loginanon">Entrar sem conta (emulador)</button>':''}
+    <p class="cover-err" id="loginerr"></p>`;
   getRedirectResult(auth).catch(e=>{const el=document.getElementById('loginerr');if(el)el.textContent='Não foi possível entrar: '+(e&&e.code||e)});
 }
 async function doLogin(){
   try{
     const standalone=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone;
     if(standalone) await signInWithRedirect(auth,googleProvider); else await signInWithPopup(auth,googleProvider);
-    document.body.classList.remove('login');
+    document.getElementById('coveract').innerHTML='<p class="cover-tag">abrindo…</p>';
   }catch(e){const el=document.getElementById('loginerr');if(el)el.textContent=e&&e.code==='auth/popup-closed-by-user'?'Login cancelado.':'Não foi possível entrar: '+(e&&e.message||e)}
 }
-function afterLoad(){ applyFont(); runMigration(); render(); }
+function afterLoad(){
+  document.body.classList.remove('login');
+  applyFont(); runMigration();
+  // ao abrir o app, o caderno abre sempre no dia de hoje
+  ui.view='dia'; ui.cur=today(); if(location.hash!=='#dia') history.replaceState(null,'','#dia');
+  render(); openCover();
+}
+function openCover(){
+  const c=document.getElementById('cover'); if(!c) return;
+  if(settings().cover===false||!canAnimate()){c.remove();return}
+  setTimeout(()=>{c.classList.add('open'); setTimeout(()=>c.remove(),1300)},250);
+}
 
 /* ================= migração automática ================= */
 function moveItem(ref,id,date,mark){
@@ -251,21 +260,13 @@ function addHTML(ref,{types=true,ph='Escreva e aperte Enter…',extra=''}={}){
 
 /* ================= navegação / casca ================= */
 function go(view,cur){ if(cur) ui.cur=cur; if(location.hash!=='#'+view) location.hash=view; else render(); }
-window.addEventListener('hashchange',()=>{ const v=location.hash.slice(1); if(VIEWS.some(x=>x[0]===v)){ui.view=v;closePop();render();window.scrollTo(0,0)} });
-function sideHTML(){
-  const ym=ui.miniYm, first=pd(ym+'-01'), off=(first.getDay()+6)%7, n=dim(ym), t=today();
-  let g='<b>S</b><b>T</b><b>Q</b><b>Q</b><b>S</b><b>S</b><b>D</b>'+'<span></span>'.repeat(off);
-  for(let d=1;d<=n;d++){const k=`${ym}-${pad(d)}`;const D=S.days[k];const has=D&&((D.items&&D.items.length)||D.thermo);
-    g+=`<button data-act="goday" data-d="${k}" class="${has?'has':''} ${k===t?'today':''} ${k===ui.cur&&ui.view==='dia'?'sel':''}" aria-label="${d} de ${MES[+ym.slice(5)-1]}">${d}</button>`}
-  return `<div class="brand">bullet<span>journal</span></div>
-  <nav class="nav" aria-label="Seções">${VIEWS.map(([v,l,i])=>`<a href="#${v}" ${ui.view===v?'aria-current="page"':''}>${ICON[i]}${l}</a>`).join('')}</nav>
-  <div class="mini"><div class="mini-h"><button data-act="mini" data-n="-1" aria-label="Mês anterior">‹</button><span>${MES[+ym.slice(5)-1]} ${ym.slice(0,4)}</span><button data-act="mini" data-n="1" aria-label="Próximo mês">›</button></div>
-  <div class="mini-g">${g}</div></div>${syncHTML()}`;
-}
-function tabsHTML(){return VIEWS.slice(0,7).map(([v,l,i])=>`<a href="#${v}" ${ui.view===v?'aria-current="page"':''}>${ICON[i]}${l}</a>`).join('')}
+window.addEventListener('hashchange',()=>{ const v=location.hash.slice(1); if(VIEWS.some(x=>x[0]===v)){ui.view=v;closePop();render()} });
+const MARKS=[['indice','Índice','#3b3632'],['ano','Ano','#5d6b3c'],['mes','Mês','#b0641f'],['semana','Semana','#2f6c8a'],['habitos','Hábitos','#6b4d8c'],['colecoes','Coleções','#8c3a5a'],['dia','Hoje','#b81f27']];
+function tabsHTML(){return MARKS.map(([v,l,c])=>{const on=ui.view===v&&(v!=='dia'||ui.cur===today());
+  return v==='dia'?`<a href="#dia" data-act="goday" data-d="${today()}" style="background:${c}" ${on?'aria-current="page"':''}>${l}</a>`:`<a href="#${v}" style="background:${c}" ${on?'aria-current="page"':''}>${l}</a>`}).join('')}
 function topbar(sub,title,nav){
   return `<div class="topbar"><div style="flex:1;min-width:0"><span class="sub">${sub}</span><h1>${title}</h1></div>
-  <div class="navbtns">${nav||''}<a class="btn ghost round mobile-only" href="#chave" aria-label="Chave de símbolos">${ICON.key}</a><a class="btn ghost round mobile-only" href="#ajustes" aria-label="Ajustes">${ICON.gear}</a></div></div>`;
+  <div class="navbtns">${nav||''}<a class="btn ghost round" href="#chave" aria-label="Chave de símbolos">${ICON.key}</a><a class="btn ghost round" href="#ajustes" aria-label="Ajustes">${ICON.gear}</a></div></div>`;
 }
 const navArrows=(act,label)=>`<button class="btn round" data-act="${act}" data-n="-1" aria-label="${label} anterior">‹</button><button class="btn" data-act="${act}" data-n="0">Hoje</button><button class="btn round" data-act="${act}" data-n="1" aria-label="Próximo ${label}">›</button>`;
 
@@ -275,7 +276,7 @@ function viewDia(){
   const sub=k===t?'Hoje':k===addD(t,-1)?'Ontem':k===addD(t,1)?'Amanhã':k<t?'Registro passado':'Registro futuro';
   const carried=(D.items||[]).filter(i=>i.from&&i.s==='open');
   const ref=`days|${k}|items`;
-  let h=topbar(`${sub} · semana ${isoWeek(k)}`,`<u>${ddmm(k)} – ${DOW[d.getDay()]}</u>`,navArrows('nday','dia'));
+  let h=topbar(`${sub} · semana ${isoWeek(k)}`,`<u>${ddmm(k)} – ${DOW[d.getDay()]}</u>`,k!==t?`<button class="btn" data-act="nday" data-n="0">Hoje</button>`:'');
   if(carried.length&&k===t) h+=`<div class="banner"><span class="big">↻</span><div><b>${carried.length} ${carried.length>1?'tarefas vieram':'tarefa veio'} de dias anteriores.</b> Elas estão no topo, com um lembrete de quantos dias estão esperando. Se algo não vale mais a pena, risque. Isso também é progresso.</div></div>`;
   h+=`<section><label class="lbl u" for="intent">Intenção do dia</label>
     <textarea class="line grow" rows="1" id="intent" data-bind="days|${k}|intent" placeholder="O que faria hoje valer a pena?">${esc(D.intent)}</textarea></section>
@@ -521,7 +522,7 @@ function viewChave(){
   <p><b>Toque no símbolo</b> de uma tarefa para marcá-la como feita (×). Toque de novo para desfazer. No <b>⋯</b> você marca como importante, adia, agenda, risca, edita ou apaga.</p>
   <h3>Migração automática</h3><p>Toda tarefa (•) que ficar aberta passa sozinha para o dia seguinte. Ela vai para o topo da lista, destacada, com um selo dizendo há quantos dias espera. No dia original ela fica marcada com &gt;. Depois de 3 dias o caderno pergunta se ainda vale a pena. No método, migrar é um filtro: o que não merece ser reescrito pode ser riscado.</p>
   <h3>Ritmo do método</h3><p><b>Diário:</b> registre ao longo do dia e feche com o termômetro. <b>Semanal:</b> no domingo ou segunda, escreva o foco e as metas da semana; no fim, faça o check-out. <b>Mensal:</b> abra o mês com o check-in e as metas por área da vida; feche com a reflexão. <b>Anual:</b> metas do ano e registro futuro para o que vem pela frente.</p>
-  <h3>Atalhos</h3><p><b>No celular:</b> deslize para o lado na página para ir ao dia, semana, mês ou ano anterior ou seguinte. <b>No computador:</b> setas ← → navegam, <b>H</b> volta para hoje, <b>N</b> começa a escrever um item novo e <b>1</b> a <b>7</b> abrem Dia, Semana, Mês, Hábitos, Ano, Coleções e Índice.</p>
+  <h3>Atalhos</h3><p>O caderno segue a ordem do livro: Índice, Ano, Mês, Semana, Hábitos, Coleções e depois um dia por folha. As abas coloridas na lateral levam direto a cada parte. <b>No celular:</b> deslize para o lado para virar a página. <b>No computador:</b> as setas ‹ › do rodapé ou ← → do teclado viram a página, <b>H</b> volta para hoje, <b>N</b> começa a escrever um item novo e <b>1</b> a <b>7</b> abrem Dia, Semana, Mês, Hábitos, Ano, Coleções e Índice.</p>
   <h3>Índice</h3><p>O índice se monta sozinho com anos, meses, dias preenchidos e coleções. Use <b>#tema</b> nos itens para agrupar assuntos e a busca para achar qualquer coisa.</p></div>`;
 }
 
@@ -531,6 +532,9 @@ function viewAjustes(){
   return topbar('Seu caderno do seu jeito','<u>Ajustes</u>','')+`
   <section><span class="lbl">Letra</span><p class="hint">A letra do guia é feita à mão. A primeira opção é a mais parecida com ela.</p>
    <div class="fontopt">${FONTS.map(([f,d])=>`<button data-act="font" data-f="${f}" aria-pressed="${st.font===f}"><span style="font-family:'${f}',cursive">Quarta-feira, 10/12</span><small>${f} · ${d}</small></button>`).join('')}</div></section>
+  <section class="blk"><span class="lbl">Caderno</span><p class="hint">A capa aparece enquanto o caderno carrega e abre sozinha no dia de hoje.</p>
+   <div class="set-row"><button class="btn small" data-act="tcover" aria-pressed="${st.cover!==false}">${st.cover!==false?'✓ ':''}Abrir com a capa</button>
+   <button class="btn small" data-act="tanim" aria-pressed="${st.anim!==false}">${st.anim!==false?'✓ ':''}Virar as páginas com animação</button></div></section>
   <section class="blk"><span class="lbl">Dicas</span><p class="hint">As explicações em cinza ficam escondidas para a página ficar limpa, como um caderno.</p>
    <button class="btn small" data-act="hints" aria-pressed="${!!st.hints}">${st.hints?'Esconder dicas':'Mostrar dicas'}</button></section>
   <section class="blk"><span class="lbl">Hábitos</span><p class="hint">Aparecem no dia e no acompanhador do mês.</p>
@@ -550,14 +554,52 @@ function render(){
   if(!ready) return;
   ui.lastDay=ui.lastDay||today();
   const v=ui.view; const f={dia:viewDia,semana:viewSemana,mes:viewMes,habitos:viewHabitos,ano:viewAno,colecoes:viewColecoes,indice:viewIndice,chave:viewChave,ajustes:viewAjustes}[v]||viewDia;
-  const y=window.scrollY;
-  const pg=document.getElementById('page'); pg.dataset.v=v; document.body.classList.toggle('hints',!!settings().hints);
+  const pg=document.getElementById('page'), sc=document.getElementById('pscroll'), key=pageKey(), was=lastKey;
+  const turning=was&&key!==was, old=turning&&canAnimate()?document.getElementById('sheet').cloneNode(true):null, oldTop=sc.scrollTop;
+  pg.dataset.v=v; document.body.classList.toggle('hints',!!settings().hints);
   pg.innerHTML=f(); pg.querySelectorAll('textarea.grow').forEach(grow);
-  document.getElementById('side').innerHTML=sideHTML();
   document.getElementById('tabs').innerHTML=tabsHTML();
-  window.scrollTo(0,y);
+  document.getElementById('folio').innerHTML=folioHTML();
+  lastKey=key;
+  if(turning){ sc.scrollTop=0; closePop(); if(old) flipPage(old,oldTop,pageCmp(was,key)>0) }
   const e=document.getElementById('edit-in'); if(e){e.focus();e.setSelectionRange(e.value.length,e.value.length)}
   if(ui.refocus){const el=document.getElementById(ui.refocus);if(el)el.focus({preventScroll:true});ui.refocus=null}
+}
+/* ---------- folhear: cada página do caderno tem uma posição na ordem do livro ---------- */
+const ORDER=['indice','ano','mes','semana','habitos','colecoes','dia','chave','ajustes'];
+let lastKey=null;
+function pageKey(){const v=ui.view,c=ui.cur;
+  const sub=v==='dia'?c:v==='semana'?monday(c):v==='mes'||v==='habitos'?ymOf(c):v==='ano'?c.slice(0,4):v==='colecoes'?(ui.col?'1'+ui.col:'0'):'';
+  return ORDER.indexOf(v)+'|'+sub}
+function pageCmp(a,b){const [ia,sa]=a.split('|'),[ib,sb]=b.split('|');return ia!==ib?(+ib)-(+ia):sb>sa?1:sb<sa?-1:0}
+const canAnimate=()=>settings().anim!==false&&!matchMedia('(prefers-reduced-motion: reduce)').matches;
+function flipPage(old,oldTop,fwd){
+  const book=document.getElementById('book'); book.querySelectorAll('.flipwrap,.under').forEach(x=>x.remove());
+  old.removeAttribute('id'); old.querySelectorAll('[id]').forEach(x=>x.removeAttribute('id'));
+  const blank='<div class="sheet back"></div>';
+  const fw=document.createElement('div'); fw.className='flipwrap '+(fwd?'fwd':'bwd');
+  let under=null;
+  if(fwd){ fw.append(old); fw.insertAdjacentHTML('beforeend',blank) }
+  else{ under=document.createElement('div'); under.className='under'; under.append(old); book.append(under);
+    const neu=document.getElementById('sheet').cloneNode(true); neu.removeAttribute('id'); neu.querySelectorAll('[id]').forEach(x=>x.removeAttribute('id'));
+    fw.append(neu); fw.insertAdjacentHTML('beforeend',blank) }
+  book.append(fw);
+  const ps=old.querySelector('.pscroll'); if(ps) ps.scrollTop=oldTop;
+  fw.addEventListener('animationend',()=>{fw.remove(); under&&under.remove()},{once:true});
+}
+function turn(d){
+  if(ui.view==='dia'){ui.cur=addD(ui.cur,d);ui.prompt=null;render();return}
+  const i=ORDER.indexOf(ui.view);
+  if(i>6){ if(d<0) go('dia',today()); return }
+  const j=i+d; if(j<0||j>6) return;
+  if(ORDER[j]==='dia') go('dia',today()); else go(ORDER[j]);
+}
+function folioHTML(){
+  const v=ui.view, i=ORDER.indexOf(v);
+  const n=v==='dia'?6+Math.round((pd(ui.cur)-pd(ui.cur.slice(0,4)+'-01-01'))/864e5)+1:i>6?'':i+1;
+  return `<button class="arrow" data-act="turn" data-n="-1" ${i===0?'disabled':''} aria-label="Virar para a página anterior">‹</button>
+  <span class="pg">${n?'pág. '+n:''} ${syncHTML()}</span>
+  <button class="arrow" data-act="turn" data-n="1" ${i>6?'disabled':''} aria-label="Virar para a próxima página">›</button>`;
 }
 function grow(t){t.style.height='auto';t.style.height=t.scrollHeight+'px'}
 const regrow=()=>document.querySelectorAll('textarea.grow').forEach(grow);
@@ -638,15 +680,17 @@ document.addEventListener('click',e=>{
     case 'nweek':{const n=+b.dataset.n;ui.cur=n?addD(ui.cur,7*n):today();render();break}
     case 'nmonth':{const n=+b.dataset.n;ui.cur=n?addM(ymOf(ui.cur),n)+'-01':today();render();break}
     case 'nyear':{const n=+b.dataset.n;ui.cur=n?`${+ui.cur.slice(0,4)+n}-01-01`:today();render();break}
-    case 'mini':{ui.miniYm=addM(ui.miniYm,+b.dataset.n);render();break}
     case 'goday':e.preventDefault();ui.miniYm=ymOf(b.dataset.d);go('dia',b.dataset.d);break;
     case 'gomonth':e.preventDefault();go('mes',b.dataset.ym+'-01');break;
     case 'goyear':e.preventDefault();go('ano',b.dataset.y+'-01-01');break;
     case 'goentry':e.preventDefault();if(b.dataset.c){ui.col=b.dataset.c}go(b.dataset.v,b.dataset.d||null);break;
-    case 'tagq':e.preventDefault();ui.q=b.dataset.t;render();window.scrollTo(0,0);break;
+    case 'tagq':e.preventDefault();ui.q=b.dataset.t;render();document.getElementById('pscroll').scrollTop=0;break;
     case 'opencol':e.preventDefault();ui.col=b.dataset.c||null;go('colecoes');break;
     case 'delcol':{const c=b.dataset.c;const gone=S.cols[c];delete S.cols[c];flush('cols',c);ui.col=null;render();undo(()=>{S.cols[c]=gone;touch('cols',c);render()},'Coleção apagada');break}
     case 'delreg':{const C=S.cols[b.dataset.c];const i=C.items.findIndex(x=>x.id===b.dataset.id);const [gone]=C.items.splice(i,1);touch('cols',b.dataset.c);render();undo(()=>{C.items.splice(i,0,gone);touch('cols',b.dataset.c);render()},'Registro apagado');break}
+    case 'turn':{turn(+b.dataset.n);break}
+    case 'tanim':{const st=settings();st.anim=st.anim===false;touch('meta','settings');render();break}
+    case 'tcover':{const st=settings();st.cover=st.cover===false;touch('meta','settings');render();break}
     case 'hints':{settings().hints=!settings().hints;touch('meta','settings');render();break}
     case 'font':{settings().font=b.dataset.f;touch('meta','settings');applyFont();render();break}
     case 'delhab':{const st=settings();const [gone]=st.habits.splice(+b.dataset.i,1);touch('meta','settings');render();undo(()=>{st.habits.splice(+b.dataset.i,0,gone);touch('meta','settings');render()},'Hábito removido');break}
@@ -709,11 +753,10 @@ document.addEventListener('keydown',e=>{
 document.addEventListener('focusout',e=>{
   if(e.target.id==='edit-in'){const t=e.target;setTimeout(()=>{if(ui.editing&&document.activeElement!==t){const it=getList(t.dataset.ref).find(x=>x.id===t.dataset.id);if(it&&t.value.trim()&&it.text!==t.value.trim()){it.text=t.value.trim();touchRef(t.dataset.ref)}ui.editing=null;render()}},120)}
 });
-window.addEventListener('scroll',()=>{if(document.querySelector('.pop'))closePop()},{passive:true});
+document.addEventListener('scroll',()=>{if(document.querySelector('.pop'))closePop()},{passive:true,capture:true});
 
 /* ================= atalhos e gesto de deslizar ================= */
-const STEP={dia:'nday',semana:'nweek',mes:'nmonth',habitos:'nmonth',ano:'nyear'};
-function step(n){const a=STEP[ui.view];if(!a)return;const b=document.createElement('button');b.dataset.act=a;b.dataset.n=n;b.hidden=true;document.getElementById('page').appendChild(b);b.click();}
+function step(n){ if(n===0) go('dia',today()); else turn(n) }
 document.addEventListener('keydown',e=>{
   if(e.metaKey||e.ctrlKey||e.altKey||!ready||!uidCur) return;
   const t=e.target; if(t.closest&&t.closest('input,textarea,select,[contenteditable]')) return;
@@ -725,7 +768,7 @@ document.addEventListener('keydown',e=>{
   else {const map={'1':'dia','2':'semana','3':'mes','4':'habitos','5':'ano','6':'colecoes','7':'indice'};if(map[e.key])go(map[e.key])}
 });
 let tx0=null,ty0=null,tt0=0;
-document.addEventListener('touchstart',e=>{const t=e.target;if(e.touches.length!==1||t.closest('.scroll-x,input,textarea,select,.pop,.gcell,input[type=range]')){tx0=null;return}tx0=e.touches[0].clientX;ty0=e.touches[0].clientY;tt0=Date.now()},{passive:true});
+document.addEventListener('touchstart',e=>{const t=e.target;if(e.touches.length!==1||t.closest('.scroll-x,input,textarea,select,.pop,.gcell,input[type=range],.cover')){tx0=null;return}tx0=e.touches[0].clientX;ty0=e.touches[0].clientY;tt0=Date.now()},{passive:true});
 document.addEventListener('touchend',e=>{if(tx0==null)return;const dx=e.changedTouches[0].clientX-tx0,dy=e.changedTouches[0].clientY-ty0;tx0=null;
   if(Date.now()-tt0<600&&Math.abs(dx)>70&&Math.abs(dy)<45){step(dx<0?1:-1)}},{passive:true});
 

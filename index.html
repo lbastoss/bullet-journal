@@ -5,8 +5,9 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>Meu Bullet Journal</title>
   <meta name="description" content="Bullet journal digital: registros diário, semanal, mensal e anual, hábitos, coleções e índice.">
-  <meta name="theme-color" content="#fdfdfb" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#1b1c20" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#2b231e" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0f0d0c" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Journal">
   <link rel="icon" href="/icon.svg" type="image/svg+xml">
@@ -14,15 +15,25 @@
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schoolbell&family=Coming+Soon&family=Mynerve&family=Patrick+Hand&family=Gochi+Hand&family=Rubik:wght@400;500;700;800&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schoolbell&family=Cormorant+Garamond:ital,wght@1,600&family=Coming+Soon&family=Mynerve&family=Patrick+Hand&family=Gochi+Hand&family=Rubik:wght@400;500;700;800&display=swap">
 </head>
-<body>
-  <div class="app">
-    <aside class="side" id="side"></aside>
-    <main><div class="page" id="page"><p class="empty">Abrindo seu caderno…</p></div></main>
+<body class="login">
+  <div class="desk">
+    <div class="book" id="book">
+      <div class="sheet" id="sheet">
+        <div class="pscroll" id="pscroll"><div id="page"></div></div>
+        <div class="folio" id="folio"></div>
+      </div>
+      <nav class="marks" id="tabs" aria-label="Marcadores"></nav>
+      <div class="cover" id="cover">
+        <div class="stitch"></div><div class="band"></div>
+        <div class="title"><b>Bullet Journal</b><span id="cover-year"></span></div>
+        <div class="cover-act" id="coveract"><p class="cover-tag">abrindo…</p></div>
+      </div>
+    </div>
   </div>
-  <nav class="tabs" id="tabs" aria-label="Seções"></nav>
   <div id="popwrap"></div>
+  <script>document.getElementById('cover-year').textContent=new Date().getFullYear()</script>
   <script type="module" src="/src/app.js"></script>
 </body>
 </html>
