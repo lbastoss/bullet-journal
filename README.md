@@ -9,8 +9,8 @@ Bullet journal digital baseado no livro *O Método Bullet Journal* (Ryder Carrol
 - **Caderno de verdade:** capa de couro que abre sozinha no dia de hoje, papel com textura, páginas que viram com animação e abas coloridas na lateral para ir direto a cada parte.
 
 - **Dia:** registro rápido (• tarefa, ○ evento, – nota, ~ ideia), intenção do dia, termômetro do dia com prompts, humor, produtividade, estresse, sono e hábitos.
-- **Semana:** foco, metas da semana, gráfico de humor, os 7 dias, próxima semana e check-out.
-- **Mês:** check-in, metas nas 5 áreas da vida, tarefas do mês e reflexão.
+- **Semana:** foco, metas da semana, gráfico de humor, os 7 dias, próxima semana, check-out e revisão guiada no domingo.
+- **Mês:** check-in, metas nas 5 áreas da vida, tarefas do mês, migração na virada do mês e reflexão com resumo automático.
 - **Hábitos:** acompanhador mensal no modelo do guia (gráfico 0–10, sono e bolinhas por hábito).
 - **Ano:** palavra do ano, metas e registro futuro.
 - **Coleções:** banco de prompts, registro de conteúdo e listas próprias.
@@ -39,5 +39,5 @@ O deploy publica só o Hosting. As regras do Firestore são as mesmas do Control
 
 - [x] Versão 1: dia, semana, mês, ano, hábitos, coleções, índice e migração automática
 - [x] Login com Google e sincronização entre aparelhos
-- [ ] Revisão semanal guiada
+- [x] Revisão semanal guiada, migração do mês, ir para uma data e resumo do mês
 - [ ] Sequência de dias seguidos por hábito

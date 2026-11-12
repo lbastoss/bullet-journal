@@ -48,7 +48,7 @@ const ICON={
  gear:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg>'
 };
 ICON.hab='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 3v18M4 21h17"/><circle cx="9" cy="8" r="1" fill="currentColor"/><circle cx="13" cy="8" r="1" fill="currentColor"/><circle cx="17" cy="8" r="1" fill="currentColor"/><circle cx="9" cy="12.5" r="1" fill="currentColor"/><circle cx="17" cy="12.5" r="1" fill="currentColor"/><circle cx="13" cy="17" r="1" fill="currentColor"/><circle cx="17" cy="17" r="1" fill="currentColor"/></svg>';
-const VIEWS=[['dia','Dia','day'],['semana','Semana','week'],['mes','Mês','month'],['habitos','Hábitos','hab'],['ano','Ano','year'],['colecoes','Coleções','col'],['indice','Índice','idx'],['chave','Chave','key'],['ajustes','Ajustes','gear']];
+const VIEWS=[['dia','Dia','day'],['semana','Semana','week'],['mes','Mês','month'],['habitos','Hábitos','hab'],['ano','Ano','year'],['colecoes','Coleções','col'],['indice','Índice','idx'],['chave','Chave','key'],['ajustes','Ajustes','gear'],['revisao','Revisão','week'],['migracao','Migração','month']];
 const FONTS=[['Schoolbell','Mais parecida com o guia'],['Coming Soon','Redonda e leve'],['Mynerve','Caneta fina'],['Patrick Hand','Mais legível'],['Gochi Hand','Marcador grosso']];
 
 /* ================= estado ================= */
@@ -282,7 +282,13 @@ function viewDia(){
   const sub=k===t?'Hoje':k===addD(t,-1)?'Ontem':k===addD(t,1)?'Amanhã':k<t?'Registro passado':'Registro futuro';
   const carried=(D.items||[]).filter(i=>i.from&&i.s==='open');
   const ref=`days|${k}|items`;
-  let h=topbar(`${sub} · semana ${isoWeek(k)}`,`<u>${ddmm(k)} – ${DOW[d.getDay()]}</u>`,k!==t?`<button class="btn" data-act="nday" data-n="0">Hoje</button>`:'');
+  let h=topbar(`${sub} · semana ${isoWeek(k)}`,`<label class="datepick" title="Ir para outra data"><u>${ddmm(k)} – ${DOW[d.getDay()]}</u><span class="dp-ic" aria-hidden="true">▾</span><input type="date" id="jump" value="${k}" aria-label="Ir para uma data"></label>`,k!==t?`<button class="btn" data-act="nday" data-n="0">Hoje</button>`:'');
+  if(k===t){
+    const dw=d.getDay(), rw=dw===0?monday(t):dw===1?addD(monday(t),-7):null;
+    if(rw&&!(S.weeks[rw]&&S.weeks[rw].reviewed)) h+=`<div class="banner"><span class="big">☰</span><div><b>Hora da revisão semanal.</b> Feche a semana com calma: o que ficou aberto, suas metas e o check-out. <button class="btn small" data-act="gorev" data-w="${rw}">Começar</button></div></div>`;
+    const ym=ymOf(t), pm=addM(ym,-1);
+    if(+t.slice(8)<=7&&!(S.months[ym]&&S.months[ym].migDone)&&monthPending(pm).length) h+=`<div class="banner"><span class="big">»</span><div><b>Mês novo, hora da migração.</b> Ficaram ${monthPending(pm).length} itens abertos em ${MES[+pm.slice(5)-1].toLowerCase()}. Decida o que vem para ${MES[+ym.slice(5)-1].toLowerCase()}. <button class="btn small" data-act="gomig" data-ym="${ym}">Revisar</button></div></div>`;
+  }
   if(carried.length&&k===t) h+=`<div class="banner"><span class="big">↻</span><div><b>${carried.length} ${carried.length>1?'tarefas vieram':'tarefa veio'} de dias anteriores.</b> Elas estão no topo, com um lembrete de quantos dias estão esperando. Se algo não vale mais a pena, risque. Isso também é progresso.</div></div>`;
   h+=`<section><label class="lbl u" for="intent">Intenção do dia</label>
     <textarea class="line grow" rows="1" id="intent" data-bind="days|${k}|intent" placeholder="O que faria hoje valer a pena?">${esc(D.intent)}</textarea></section>
@@ -327,8 +333,74 @@ function viewSemana(){
     <div class="box next"><h5>Próxima semana</h5>${listHTML(`weeks|${m}|next`,{compact:true})}${addHTML(`weeks|${m}|next`,{types:false,ph:'Não esquecer…'})}</div></div></section>
   <section class="blk"><label class="lbl u" for="checkout">Check-out</label>
     <p class="hint">Faça um balanço: conseguiu realizar o que precisava? Teve tempo de descanso e lazer?</p>
-    <textarea class="write" id="checkout" data-bind="weeks|${m}|checkout" placeholder="Semana com…">${esc(W.checkout)}</textarea></section>`;
+    <textarea class="write" id="checkout" data-bind="weeks|${m}|checkout" placeholder="Semana com…">${esc(W.checkout)}</textarea>
+    <p style="margin-top:14px">${W.reviewed?`<span class="sublbl" style="display:inline">✓ Revisão feita em ${ddmm(W.reviewed)}</span> `:''}<button class="btn" data-act="gorev" data-w="${m}">☰ ${W.reviewed?'Abrir a revisão':'Fazer a revisão guiada da semana'}</button></p></section>`;
   return h;
+}
+
+/* ================= REVISÃO SEMANAL GUIADA ================= */
+function weekOpen(m){
+  const out=[]; for(let i=0;i<7;i++){const k=addD(m,i);const D=S.days[k];if(!D)continue;
+    (D.items||[]).forEach(it=>{if(it.t==='task'&&it.s==='open')out.push({it,ref:`days|${k}|items`,k})})}
+  return out;
+}
+const rvRow=(it,ref,when,ops)=>`<li class="rvrow"><span class="rvtx">${it.imp?'<span class="imp">✱</span>':''}${esc(it.text)}${when?` <small>${when}</small>`:''}</span>
+  <span class="rvbtns">${ops.map(([op,l,extra])=>`<button class="btn small ${op==='cancel'?'ghost':''}" data-act="rv" data-op="${op}" data-ref="${ref}" data-id="${it.id}" ${extra||''}>${l}</button>`).join('')}</span></li>`;
+function viewRevisao(){
+  const m=monday(ui.cur), nm=addD(m,7), W=peek('weeks',m)||DEF.weeks(), open=weekOpen(m), goals=W.goals||[];
+  let h=topbar(`Semana ${isoWeek(m)} · ${ddmm(m)} – ${ddmm(addD(m,6))}`,'<u>Revisão semanal</u>',`<a class="btn" href="#semana">Ver a semana</a>`);
+  h+=`<p class="lead">Três passos, uns 10 minutos. Olhe a semana com calma e decida o que segue com você.</p>
+  <section class="blk"><span class="lbl">1 · O que ficou aberto</span>
+   ${open.length?`<ul class="rv">${open.map(({it,ref,k})=>rvRow(it,ref,ddmm(k),[['done','✓ Feito'],['next','→ Próxima semana',`data-d="${nm}"`],['cancel','Riscar']])).join('')}</ul>`
+     :'<p class="empty">Nada pendente nesta semana. ✓</p>'}</section>
+  <section class="blk"><span class="lbl">2 · Metas da semana</span>
+   ${goals.length?`${listHTML(`weeks|${m}|goals`)}<p class="sublbl">Toque no símbolo da meta para marcar o que conseguiu.</p>`:'<p class="empty">Nenhuma meta definida para esta semana.</p>'}</section>
+  <section class="blk"><label class="lbl" for="checkout">3 · Check-out</label>
+   <p class="sublbl">Conseguiu realizar o que precisava? Teve descanso e lazer? O que fica de aprendizado?</p>
+   <textarea class="write" id="checkout" data-bind="weeks|${m}|checkout" placeholder="Semana com…">${esc(W.checkout)}</textarea>
+   <p class="sublbl">Metas para a próxima semana (${ddmm(nm)} – ${ddmm(addD(nm,6))})</p>
+   ${listHTML(`weeks|${nm}|goals`)}${addHTML(`weeks|${nm}|goals`,{types:false,ph:'Nova meta da próxima semana…'})}</section>
+  <section class="blk">${W.reviewed?`<p class="empty">✓ Revisão feita em ${ddmm(W.reviewed)}.</p>`:`<button class="btn primary" data-act="rvdone" data-w="${m}">Concluir revisão</button>`}</section>`;
+  return h;
+}
+
+/* ================= MIGRAÇÃO DO MÊS ================= */
+function monthPending(ym){
+  const y=ym.slice(0,4), mm=ym.slice(5), out=[], M=S.months[ym];
+  if(M){(M.tasks||[]).forEach(it=>{if(it.s==='open'&&(it.t==='task'||it.t==='event'))out.push({it,ref:`months|${ym}|tasks`,kind:'tasks'})});
+    (M.goals||[]).forEach(it=>{if(it.s==='open')out.push({it,ref:`months|${ym}|goals`,kind:'goals'})})}
+  const Y=S.years[y]; ((Y&&Y.f&&Y.f[mm])||[]).forEach(it=>{if(it.s==='open'&&it.t==='task')out.push({it,ref:`years|${y}|f.${mm}`,kind:'tasks'})});
+  return out;
+}
+function viewMigracao(){
+  const ym=ymOf(ui.cur), pm=addM(ym,-1), M=peek('months',ym)||DEF.months(), list=monthPending(pm), nm=MES[+ym.slice(5)-1], pn=MES[+pm.slice(5)-1];
+  const cat=id=>{const c=settings().cats.find(c=>c.id===id);return c?c.n:''};
+  let h=topbar(`${pn} → ${nm}`,'<u>Migração do mês</u>',`<a class="btn" href="#mes">Ver o mês</a>`);
+  h+=`<p class="lead">O ritual do livro na virada do mês: olhe item por item o que ficou aberto. Só vem para ${nm.toLowerCase()} o que ainda vale a pena.</p>
+  <section class="blk"><span class="lbl">Ficou aberto em ${pn.toLowerCase()}</span>
+   ${list.length?`<ul class="rv">${list.map(({it,ref,kind})=>rvRow(it,ref,kind==='goals'?'meta'+(it.cat?' · '+esc(cat(it.cat)):''):ref.startsWith('years')?'registro futuro':'tarefa do mês',
+       [['mig','→ '+nm,`data-ym="${ym}" data-kind="${kind}"`],['done','✓ Feito'],['cancel','Riscar']])).join('')}</ul>`
+     :`<p class="empty">Nada pendente de ${pn.toLowerCase()}. ✓</p>`}</section>
+  <section class="blk">${M.migDone?`<p class="empty">✓ Migração feita em ${ddmm(M.migDone)}.</p>`:`<button class="btn primary" data-act="migdone" data-ym="${ym}">Concluir migração</button>`}</section>`;
+  return h;
+}
+
+/* ================= resumo do mês ================= */
+function monthSummary(ym){
+  const t=today(), keys=[...Array(dim(ym))].map((_,i)=>`${ym}-${pad(i+1)}`).filter(k=>k<=t);
+  if(!keys.length) return '';
+  const fin=new Map();
+  keys.forEach(k=>((S.days[k]&&S.days[k].items)||[]).forEach(it=>{if(it.t==='task')fin.set(it.id.split('~')[0],it.s)}));
+  const st=[...fin.values()], done=st.filter(x=>x==='done').length, moved=st.filter(x=>x==='migrated'||x==='scheduled'||x==='open').length, canc=st.filter(x=>x==='cancelled').length;
+  const avg=f=>{const v=keys.map(k=>S.days[k]&&S.days[k][f]).filter(v=>v!=null);return v.length?(v.reduce((a,b)=>a+ +b,0)/v.length).toFixed(1).replace('.',','):null};
+  const sl=keys.map(k=>sleepMin(S.days[k]&&S.days[k].sleep)).filter(v=>v!=null), sAvg=sl.length?Math.round(sl.reduce((a,b)=>a+b,0)/sl.length):null;
+  const hab=settings().habits.map(hb=>({n:hb.n,p:Math.round(keys.filter(k=>S.days[k]&&S.days[k].habits&&S.days[k].habits[hb.id]).length/keys.length*100)})).filter(x=>x.p>0).sort((a,b)=>b.p-a.p).slice(0,3);
+  const cell=(l,v)=>v==null||v===''?'':`<div><small>${l}</small>${v}</div>`;
+  const body=cell('Tarefas',st.length?`${done} ${done===1?'feita':'feitas'}${moved?` · ${moved} ${moved===1?'adiada':'adiadas'}`:''}${canc?` · ${canc} ${canc===1?'riscada':'riscadas'}`:''}`:null)
+    +cell('Humor médio',avg('mood'))+cell('Produtividade média',avg('prod'))+cell('Estresse médio',avg('stress'))
+    +cell('Sono médio',sAvg!=null?`${Math.floor(sAvg/60)}h${pad(sAvg%60)}`:null)
+    +cell('Hábitos mais constantes',hab.length?hab.map(x=>`${esc(x.n)} ${x.p}%`).join(' · '):null);
+  return body?`<div class="summary">${body}</div>`:'';
 }
 
 /* ================= MÊS ================= */
@@ -353,6 +425,7 @@ function viewMes(){
   const keys=[...Array(n)].map((_,i)=>`${ym}-${pad(i+1)}`);
   const Y=peek('years',String(y)); const fut=(Y&&Y.f&&Y.f[pad(mm)])||[];
   let h=topbar(`Registro mensal · ${y}`,`<u>${MES[mm-1]}</u>`,navArrows('nmonth','mês'));
+  { const pend=monthPending(addM(ym,-1)).length; if(pend||M.migDone) h+=`<p style="margin:-8px 0 18px"><button class="btn small" data-act="gomig" data-ym="${ym}">» Migração de ${MES[+addM(ym,-1).slice(5)-1].toLowerCase()}${M.migDone?' ✓':` · ${pend} ${pend>1?'itens':'item'}`}</button></p>`; }
   h+=`<section><label class="lbl u" for="checkin">Check-in</label>
     <p class="hint">Como você está no começo do mês e onde quer chegar no final dele.</p>
     <textarea class="write" id="checkin" data-bind="months|${ym}|checkin" placeholder="Tudo que eu quero pra esse mês é…">${esc(M.checkin)}</textarea></section>
@@ -367,7 +440,7 @@ function viewMes(){
    <tbody>${keys.map(k=>{const D=S.days[k]||{};const d=pd(k);return `<tr class="${k===t?'today':''}"><td class="d">${+k.slice(8)} ${DOW1[d.getDay()]}</td><td class="sl">${esc(D.sleep||'')}</td><td class="mt">${D.prod??''}</td><td class="mt">${D.stress??''}</td>
      ${st.habits.map(hb=>`<td><button data-act="habit" data-d="${k}" data-h="${hb.id}" aria-label="${esc(hb.n)} dia ${+k.slice(8)}" aria-pressed="${!!(D.habits||{})[hb.id]}">${(D.habits||{})[hb.id]?'●':''}</button></td>`).join('')}</tr>`}).join('')}</tbody>
    <tfoot><tr><td class="d">total</td><td></td><td></td><td></td>${st.habits.map(hb=>`<td class="mt">${keys.filter(k=>S.days[k]&&S.days[k].habits&&S.days[k].habits[hb.id]).length}</td>`).join('')}</tr></tfoot></table></div></section>
-  <section class="blk"><label class="lbl u" for="reflect">Reflexão do mês</label><p class="hint">No fim do mês: o que funcionou, o que vale migrar para o próximo, o que deixar ir.</p>
+  <section class="blk"><label class="lbl u" for="reflect">Reflexão do mês</label><p class="hint">No fim do mês: o que funcionou, o que vale migrar para o próximo, o que deixar ir.</p>${monthSummary(ym)}
    <textarea class="write" id="reflect" data-bind="months|${ym}|reflect">${esc(M.reflect)}</textarea></section>`;
   return h;
 }
@@ -559,7 +632,7 @@ let renderQueued=false;
 function render(){
   if(!ready) return;
   ui.lastDay=ui.lastDay||today();
-  const v=ui.view; const f={dia:viewDia,semana:viewSemana,mes:viewMes,habitos:viewHabitos,ano:viewAno,colecoes:viewColecoes,indice:viewIndice,chave:viewChave,ajustes:viewAjustes}[v]||viewDia;
+  const v=ui.view; const f={dia:viewDia,semana:viewSemana,mes:viewMes,habitos:viewHabitos,ano:viewAno,colecoes:viewColecoes,indice:viewIndice,chave:viewChave,ajustes:viewAjustes,revisao:viewRevisao,migracao:viewMigracao}[v]||viewDia;
   const pg=document.getElementById('page'), sc=document.getElementById('pscroll'), key=pageKey(), was=lastKey;
   const turning=was&&key!==was, old=turning&&canAnimate()?document.getElementById('sheet').cloneNode(true):null, oldTop=sc.scrollTop;
   pg.dataset.v=v; document.body.classList.toggle('hints',!!settings().hints);
@@ -572,10 +645,10 @@ function render(){
   if(ui.refocus){const el=document.getElementById(ui.refocus);if(el)el.focus({preventScroll:true});ui.refocus=null}
 }
 /* ---------- folhear: cada página do caderno tem uma posição na ordem do livro ---------- */
-const ORDER=['indice','ano','mes','semana','habitos','colecoes','dia','chave','ajustes'];
+const ORDER=['indice','ano','mes','semana','habitos','colecoes','dia','chave','ajustes','revisao','migracao'];
 let lastKey=null;
 function pageKey(){const v=ui.view,c=ui.cur;
-  const sub=v==='dia'?c:v==='semana'?monday(c):v==='mes'||v==='habitos'?ymOf(c):v==='ano'?c.slice(0,4):v==='colecoes'?(ui.col?'1'+ui.col:'0'):'';
+  const sub=v==='dia'?c:v==='semana'||v==='revisao'?monday(c):v==='mes'||v==='habitos'||v==='migracao'?ymOf(c):v==='ano'?c.slice(0,4):v==='colecoes'?(ui.col?'1'+ui.col:'0'):'';
   return ORDER.indexOf(v)+'|'+sub}
 function pageCmp(a,b){const [ia,sa]=a.split('|'),[ib,sb]=b.split('|');return ia!==ib?(+ib)-(+ia):sb>sa?1:sb<sa?-1:0}
 const canAnimate=()=>settings().anim!==false&&!matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -593,9 +666,11 @@ function flipPage(old,oldTop,fwd){
   const ps=old.querySelector('.pscroll'); if(ps) ps.scrollTop=oldTop;
   fw.addEventListener('animationend',()=>{fw.remove(); under&&under.remove()},{once:true});
 }
+const v2back={revisao:'semana',migracao:'mes'};
 function turn(d){
   if(ui.view==='dia'){ui.cur=addD(ui.cur,d);ui.prompt=null;render();return}
   const i=ORDER.indexOf(ui.view);
+  if(v2back[ui.view]){ if(d<0) go(v2back[ui.view]); return }
   if(i>6){ if(d<0) go('dia',today()); return }
   const j=i+d; if(j<0||j>6) return;
   if(ORDER[j]==='dia') go('dia',today()); else go(ORDER[j]);
@@ -694,6 +769,15 @@ document.addEventListener('click',e=>{
     case 'opencol':e.preventDefault();ui.col=b.dataset.c||null;go('colecoes');break;
     case 'delcol':{const c=b.dataset.c;const gone=S.cols[c];delete S.cols[c];flush('cols',c);ui.col=null;render();undo(()=>{S.cols[c]=gone;touch('cols',c);render()},'Coleção apagada');break}
     case 'delreg':{const C=S.cols[b.dataset.c];const i=C.items.findIndex(x=>x.id===b.dataset.id);const [gone]=C.items.splice(i,1);touch('cols',b.dataset.c);render();undo(()=>{C.items.splice(i,0,gone);touch('cols',b.dataset.c);render()},'Registro apagado');break}
+    case 'gorev':e.preventDefault();go('revisao',b.dataset.w);break;
+    case 'gomig':e.preventDefault();go('migracao',b.dataset.ym+'-01');break;
+    case 'rv':{const r=b.dataset.ref,l=getList(r),it=l.find(x=>x.id===b.dataset.id);if(!it)break;const op=b.dataset.op;
+      if(op==='done') it.s='done'; else if(op==='cancel') it.s='cancelled';
+      else if(op==='next'){moveItem(r,it.id,b.dataset.d,'scheduled');toast('Levado para '+ddmm(b.dataset.d));render();break}
+      else if(op==='mig'){const dest=`months|${b.dataset.ym}|${b.dataset.kind}`;getList(dest).push({...clone(it),id:uid(),s:'open',from:undefined,to:undefined});it.s='migrated';touchRef(dest);toast('Levado para '+MES[+b.dataset.ym.slice(5)-1].toLowerCase())}
+      touchRef(r);render();break}
+    case 'rvdone':{doc('weeks',b.dataset.w).reviewed=today();touch('weeks',b.dataset.w);toast('Revisão concluída. Boa semana!');go('semana');break}
+    case 'migdone':{doc('months',b.dataset.ym).migDone=today();touch('months',b.dataset.ym);toast('Migração concluída');go('mes');break}
     case 'turn':{turn(+b.dataset.n);break}
     case 'tanim':{const st=settings();st.anim=st.anim===false;touch('meta','settings');render();break}
     case 'tcover':{const st=settings();st.cover=st.cover===false;touch('meta','settings');render();break}
@@ -744,9 +828,10 @@ document.addEventListener('input',e=>{
   else if(t.dataset.cat!=null){settings().cats[+t.dataset.cat].n=t.value;touch('meta','settings')}
   else if(t.id==='idxq'){ui.q=t.value;document.getElementById('idxres').innerHTML=idxResults()}
 });
+document.addEventListener('click',e=>{if(e.target.id==='jump'){try{e.target.showPicker()}catch(_){}}});
 document.addEventListener('change',e=>{
   if(e.target.id==='imp'&&e.target.files[0]) importData(e.target.files[0]);
-  if(e.target.type==='range'&&ui.view==='dia') {/* valor já salvo */}
+  if(e.target.id==='jump'&&e.target.value) go('dia',e.target.value);
 });
 document.addEventListener('keydown',e=>{
   const t=e.target;

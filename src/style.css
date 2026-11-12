@@ -309,3 +309,18 @@ mark{background:var(--hl);color:inherit}
 .sublbl{font:400 18px var(--hand);color:var(--ink-2);margin:18px 0 8px;display:block}
 /* página limpa: dicas em cinza só aparecem se ligadas em Ajustes */
 body:not(.hints):not(.login) #page:not([data-v="ajustes"]):not([data-v="chave"]) .hint:not(.keep),.flipwrap .hint:not(.keep),.under .hint:not(.keep){display:none}
+.datepick{position:relative;cursor:pointer;display:inline-flex;align-items:baseline;gap:6px}
+.datepick .dp-ic{font:400 16px var(--ui);color:var(--ink-2)}
+.datepick input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:0;padding:0;-webkit-appearance:none;appearance:none}
+.lead{font:400 19px/1.45 var(--hand);color:var(--ink-2);margin:-6px 0 0;max-width:56ch}
+ul.rv{list-style:none;margin:0;padding:0}
+.rvrow{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 12px;padding:8px 0;border-bottom:1px solid var(--line)}
+.rvtx{font:400 var(--fs-hand)/1.3 var(--hand);min-width:0;flex:1 1 220px;overflow-wrap:anywhere}
+.rvtx .imp{color:var(--red);margin-right:4px}
+.rvtx small{font:500 11px var(--ui);color:var(--ink-2);letter-spacing:.05em;text-transform:uppercase;margin-left:4px}
+.rvbtns{display:flex;gap:4px;flex-wrap:wrap}
+.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px 20px;margin:4px 0 18px;padding:12px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.summary div{font:400 19px/1.25 var(--hand);color:var(--blue)}
+.summary small{display:block;font:500 11px var(--ui);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);margin-bottom:2px}
+a.btn{color:var(--ink);text-decoration:none}
+a.btn:hover{color:var(--paper)}
