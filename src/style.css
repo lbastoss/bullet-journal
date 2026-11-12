@@ -70,6 +70,10 @@ input,textarea,select{font:inherit;color:inherit}
 .cover-btn{display:inline-flex;align-items:center;gap:10px;border:0;border-radius:999px;padding:11px 22px;background:#ecd3a8;color:#3f2412;font:500 15px var(--ui);box-shadow:0 2px 0 #0006,inset 0 1px 0 #fff8}
 .cover-btn:hover{background:#f6e2bd}
 .cover-err{margin:0;font:400 13px var(--ui);color:#ffb4a8;min-height:1em}
+.cover.closed{cursor:pointer}
+.cover.closed .cover-tag{animation:pulse 2.4s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.45}}
+.cover:focus-visible{outline:2px solid #e7c999;outline-offset:-10px}
 .cover.open{transform:rotateY(-160deg);opacity:0;pointer-events:none}
 .cover.open .band{transform:translateX(30px);opacity:0}
 body.login .marks{display:none}

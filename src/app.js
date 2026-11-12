@@ -167,8 +167,14 @@ function afterLoad(){
 }
 function openCover(){
   const c=document.getElementById('cover'); if(!c) return;
-  if(settings().cover===false||!canAnimate()){c.remove();return}
-  setTimeout(()=>{c.classList.add('open'); setTimeout(()=>c.remove(),1300)},250);
+  if(settings().cover===false){c.remove();return}
+  // o caderno fica fechado até você tocar na capa
+  document.getElementById('coveract').innerHTML='<p class="cover-tag">toque para abrir</p>';
+  c.classList.add('closed'); c.setAttribute('role','button'); c.tabIndex=0; c.setAttribute('aria-label','Abrir o caderno');
+  const open=()=>{ if(!canAnimate()){c.remove();return} c.classList.add('open'); setTimeout(()=>c.remove(),1300) };
+  c.addEventListener('click',open,{once:true});
+  c.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open()}});
+  c.focus({preventScroll:true});
 }
 
 /* ================= migração automática ================= */
@@ -532,7 +538,7 @@ function viewAjustes(){
   return topbar('Seu caderno do seu jeito','<u>Ajustes</u>','')+`
   <section><span class="lbl">Letra</span><p class="hint">A letra do guia é feita à mão. A primeira opção é a mais parecida com ela.</p>
    <div class="fontopt">${FONTS.map(([f,d])=>`<button data-act="font" data-f="${f}" aria-pressed="${st.font===f}"><span style="font-family:'${f}',cursive">Quarta-feira, 10/12</span><small>${f} · ${d}</small></button>`).join('')}</div></section>
-  <section class="blk"><span class="lbl">Caderno</span><p class="hint">A capa aparece enquanto o caderno carrega e abre sozinha no dia de hoje.</p>
+  <section class="blk"><span class="lbl">Caderno</span><p class="hint">Com a capa ligada, o caderno abre fechado e só abre quando você toca nela, já no dia de hoje.</p>
    <div class="set-row"><button class="btn small" data-act="tcover" aria-pressed="${st.cover!==false}">${st.cover!==false?'✓ ':''}Abrir com a capa</button>
    <button class="btn small" data-act="tanim" aria-pressed="${st.anim!==false}">${st.anim!==false?'✓ ':''}Virar as páginas com animação</button></div></section>
   <section class="blk"><span class="lbl">Dicas</span><p class="hint">As explicações em cinza ficam escondidas para a página ficar limpa, como um caderno.</p>
